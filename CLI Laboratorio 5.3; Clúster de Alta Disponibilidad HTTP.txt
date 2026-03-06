@@ -1,0 +1,173 @@
+Comandos utilizados, práctica laboratorio 5.3: Alta Disponibilidad y Clustering.
+
+CLÚSTER DE ALTA DISPONBILIDAD HTTP  
+
+============================================
+
+# Utilizaremos dos máquinas Rocky, la principal y un clon. Debemos descargar el servidor web en ambos servidores, en este caso, Apache:
+
+sudo dnf install httpd
+
+# Creamos una página index.html en cada servidor:
+
+echo "<h1>Servidor 1 - IP: 192.168.1.9</h1>" | sudo tee /var/www/html/index.html
+
+echo "<h1>Servidor 2 - IP: 192.168.1.100</h1>" | sudo tee /var/www/html/index.html
+
+# Determino el usuario:
+
+sudo chown ferna:ferna /var/www/html/index.html
+
+# Habilitamos http en los firewalls de Rocky:
+
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+
+# Luego, habilitamos y arrancamos Apache en cada servidor:
+
+sudo systemctl enable httpd
+sudo systemctl start httpd
+sudo systemctl status httpd
+
+# Instalamos Keepalived en ambos servidores:
+
+sudo dnf install keepalived
+
+# Luego, para configurar Keepalived, debemos editar el archivo de configuración. En esta ocasión, eliminamos el archivo existente y creamos uno nuevo en cada servidor:
+
+sudo rm /etc/keepalived/keepalived.conf
+sudo nano /etc/keepalived/keepalived.conf
+
+# Luego de ello, colocamos los parámetros de cada servidor:
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens160
+    virtual_router_id 51
+    priority 99
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 12345
+    }
+    virtual_ipaddress {
+        192.168.1.201
+    }
+}
+
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens160
+    virtual_router_id 51
+    priority 50
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 12345
+    }
+    virtual_ipaddress {
+        192.168.1.201
+    }
+}
+
+
+# Al finalizar la configuración, iniciamos y habilitamos Keepalived:
+
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+sudo systemctl status keepalived
+
+# De igual forma reiniciamos el servicio Apache:
+
+sudo systemctl restart httpd
+sudo systemctl status httpd
+
+
+# Finalmente, desde nuestro host, abrimos la IP flotante desde un navegador y verificamos el servidor activo. Luego, para comprobar la alta disponibilidad, iniciamos un ping permanente y reiniciamos el servidor master; si el ping continúa a pesar del reinicio, y el navegador cargar la información del backup, la configuración ha sido realizada exitosamente.Comandos utilizados, práctica laboratorio 5.3: Alta Disponibilidad y Clustering.
+
+CLÚSTER DE ALTA DISPONBILIDAD HTTP
+
+============================================
+
+# Utilizaremos dos máquinas Rocky, la principal y un clon. Debemos descargar el servidor web en ambos servidores, en este caso, Apache:
+
+sudo dnf install httpd
+
+# Creamos una página index.html en cada servidor:
+
+echo "<h1>Servidor 1 - IP: 192.168.1.9</h1>" | sudo tee /var/www/html/index.html
+
+echo "<h1>Servidor 2 - IP: 192.168.1.100</h1>" | sudo tee /var/www/html/index.html
+
+# Determino el usuario:
+
+sudo chown ferna:ferna /var/www/html/index.html
+
+# Habilitamos http en los firewalls de Rocky:
+
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+
+# Luego, habilitamos y arrancamos Apache en cada servidor:
+
+sudo systemctl enable httpd
+sudo systemctl start httpd
+sudo systemctl status httpd
+
+# Instalamos Keepalived en ambos servidores:
+
+sudo dnf install keepalived
+
+# Luego, para configurar Keepalived, debemos editar el archivo de configuración. En esta ocasión, eliminamos el archivo existente y creamos uno nuevo en cada servidor:
+
+sudo rm /etc/keepalived/keepalived.conf
+sudo nano /etc/keepalived/keepalived.conf
+
+# Luego de ello, colocamos los parámetros de cada servidor:
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens160
+    virtual_router_id 51
+    priority 99
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 12345
+    }
+    virtual_ipaddress {
+        192.168.1.201
+    }
+}
+
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens160
+    virtual_router_id 51
+    priority 50
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 12345
+    }
+    virtual_ipaddress {
+        192.168.1.201
+    }
+}
+
+
+# Al finalizar la configuración, iniciamos y habilitamos Keepalived:
+
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+sudo systemctl status keepalived
+
+# De igual forma reiniciamos el servicio Apache:
+
+sudo systemctl restart httpd
+sudo systemctl status httpd
+
+
+# Finalmente, desde nuestro host, abrimos la IP flotante desde un navegador y verificamos el servidor activo. Luego, para comprobar la alta disponibilidad, iniciamos un ping permanente y reiniciamos el servidor master; si el ping continúa a pesar del reinicio, y el navegador cargar la información del backup, la configuración ha sido realizada exitosamente.
