@@ -1,0 +1,70 @@
+Comandos utilizados, práctica laboratorio 5.1: Alta Disponibilidad y Clustering.
+
+SINCRONIZACIÓN DE CARPETAS CON RSYNC
+
+============================================
+
+# Usaremos dos máquinas Rocky; una principal en la que haremos las carpetas, y una clon en la que sincronizaremos informarción. Primero, descargamos rsync ambos servidores:
+
+sudo dnf install rsync
+
+# Para asegurarnos de una conexión sin interrupciones, creamos llaves ssh para que el servidor principal pueda conectarse al clon sin credenciales:
+
+ssh-keygen
+ssh-copy-id ferna@192.168.1.100
+
+
+# Luego de ello, en el servidor principal, crearemos la carpeta con los archivos sincronizar:
+
+mkdir ~/archivos
+
+# Nos posicionamos dentro de la carpeta y creamos 100 archivos texto como ejemplo. Comprobamos que los archivos hayan sido creados:
+
+cd ~/archivos
+touch Caleta{1..100}
+ls
+
+# Luego de haber creado los archivos dentro de la carpeta archivo, nos dirigimos al segundo servidor y creamos la carpeta con la que sincronizaremos el directorio creado anteriormente:
+
+mkdir ~/sync
+
+# Volvemos al servidor principal e iniciamos la sincronización utilizando el usuario e IP address del segundo servidor, parecido a la sincronización ssh:
+
+rsync -avz ~/archivo/ ferna@192.168.1.100:~/sync/
+
+# Tendremos que colocar la contraseña del usuario perteneciente al servidor secundario una vez sea requerida. Luego, desde dicho servidor secundario, comprobamos que los archivos hayan sido transmitidos:
+
+cd ~/sync
+ls
+
+# Ahora, en el servidor principal, creamos un archivo de texto:
+
+cd
+nano script.sh
+
+# Luego, crearemos un script para la sincronización de los documentos:
+
+#!/bin/bash
+rsync -avz ~/archivos ferna@192.168.1.100:~/sync
+
+# Al concluir, guardamos el archivo y agregamos permisos de ejecución:
+
+chmod +x ~/script.sh
+
+# Ahora, colocaremos el script en las tareas crontab para que se ejecute cada minuto:
+
+crontab -e
+* * * * * /home/ferna/script.sh
+
+# Comprobaremos el funcionamiento del script creando varios archivos extra en el servidor principal, en la carpeta archivos:
+
+cd ~/archivos
+touch SDnorte{1..10}
+ls
+
+# Luego de verificar que los archivos han sido creados, nos redirigimos al servidor secundario para comprobar que la sincronización se llevó a cabo tras el minuto transcurrido:
+
+cd ~/sync
+ls
+
+# Si los archivos creados previamente (SDnorte) aparecen en la capeta, significa que el script ha funcionado correctamente.
