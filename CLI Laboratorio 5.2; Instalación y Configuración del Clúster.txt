@@ -1,0 +1,63 @@
+Comandos utilizados, práctica laboratorio 5.2: Alta Disponibilidad y Clustering.
+
+INSTALACIÓN Y CONFIGURACIÓN DEL CLÚSTER
+
+============================================
+
+# Utilizaremos dos servidores Rocky, uno principal y uno secundario. En ambos servidores, habilitaremos los repositorios de alta disponibilidad:
+
+sudo dnf install -y epel-release
+sudo dnf config-manager --set-enabled highavailability
+sudo dnf config-manager --enable highavailability
+
+
+# Luego, en ambos servidores, instalamos Pacemaker y herramientas necesarias:
+
+sudo dnf install -y pacemaker pcs
+
+# Habilitamos y arrancamos los servicios en ambos servidores:
+
+sudo systemctl enable pcsd
+sudo systemctl start pcsd
+
+# Configuramos la contraseña del usuario, hacluster, en ambos servidores:
+
+sudo passwd hacluster
+
+# En ambos servidores, permitimos la comunicación del clúster a través del Firewall:
+
+sudo firewall-cmd --permanent --add-service=high-availability
+sudo firewall-cmd --reload
+
+# Luego, para autenticar los nodos y hosts entre sí, desde el servidor principal ejecutamos el siguiente comando utilizando las IP addresses de los servidores utilizados (ejecutar solo en uno de los servidores):
+
+sudo pcs cluster auth 192.168.1.100 192.168.1.9 -u hacluster
+sudo pcs host auth 192.168.1.100 192.168.1.9 -u hacluster
+
+# Tendremos que insertar la contraseña del usuario hacluster. Luego, creamos el clúster y asignamos un nombre (ejecutamos solo en un servidor):
+
+sudo pcs cluster setup cluster-ferna 192.168.1.100 192.168.1.9
+
+
+# Luego, en solo uno de los servidores, habilitamos e iniciamos el clúster:
+
+sudo pcs cluster enable --all
+sudo pcs cluster start --all
+
+# Para verificar el estado del clúster ejecutamos el siguiente comando en cualquiera de los dos servidores:
+
+sudo pcs status
+
+# Deshabilitamos STONITH (Medida de protección de fallas. Opcional)
+
+sudo pcs property set stonith-enabled=false
+
+# Luego, en uno de los servidores, configuramos la IP address virtual (flotante) que se moverá entre nodos si uno falla:
+
+sudo pcs resource create IP_Flotante ocf:heartbeat:IPaddr2 ip=192.168.1.200 cidr_netmask=24 op monitor interval=30s
+
+# Luego de ello, desde nuestra máquina host probamos la disponibilidad de los nodos: hacemos un ping permanente a la IP address virtual:
+
+ping 192.168.1.200
+
+# Mientras hacemos ping, reiniciamos los servidores de forma intercalada para comprobar que Pacemaker transfiere la IP flotante al nodo restante. Si el ping no se pierde, la configuración ha sido exitosa.
